@@ -85,6 +85,35 @@ public class Benchmark {
         }
     }
 
+    private static final Encoder[] ENCODERS;
+    static {
+        Encoder[] encoders = new Encoder[SCHEMA.length];
+        for (int i = 0; i < SCHEMA.length; i++) {
+            encoders[i] = SCHEMA[i].getEncoder();
+        }
+        ENCODERS = encoders;
+    }
+
+    static void encodeArray(Object[] row, Cursor cursor) throws BufferOverflowException {
+        for (int i = 0; i < ENCODERS.length; i++) {
+            ENCODERS[i].encode(row, i, cursor);
+        }
+    }
+
+    @org.openjdk.jmh.annotations.Benchmark
+    @OutputTimeUnit(TimeUnit.MILLISECONDS)
+    @BenchmarkMode(Mode.Throughput)
+    @Fork(value = 1, warmups = 0, jvmArgsAppend = {
+            "-XX:+UnlockDiagnosticVMOptions", "-XX:+PrintInlining",
+//            "-XX:+LogCompilation", "-XX:+PrintAssembly",
+    })
+    public void benchEncoderArray() {
+        for (int i = 0; i < 3; i++) {
+            Object[] row = ROWS[i];
+            encodeArray(row, new Cursor(ALLOC, ALLOC + 4096));
+        }
+    }
+
     private static final Encoder ENCODER_USING_COPIES;
     static {
         Encoder encoder = SCHEMA[SCHEMA.length - 1].getEncoder();
